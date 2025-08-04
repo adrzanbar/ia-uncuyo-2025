@@ -1,6 +1,6 @@
 # Actividad Preliminar 1
 
-## 1. Ejempplos de aplicaciones de inteligencia artificial.
+## 1. Ejemplos de aplicaciones de inteligencia artificial.
 
 ### AlphaFold
 
