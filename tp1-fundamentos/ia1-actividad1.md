@@ -36,3 +36,17 @@ Al elegir un juego tan complejo como Dota 2 para estudiar el aprendizaje automá
 Cada bot de OpenAI Five es una red neuronal que contiene una sola capa con una LSTM de 4096 unidades que observa el estado actual del juego extraído de la API del desarrollador de Dota. La red neuronal realiza acciones a través de numerosas cabezas de acción posibles (no hay datos humanos implicados), y cada cabeza tiene un significado. Por ejemplo, el número de ticks para retrasar una acción, qué acción seleccionar, la coordenada X o Y de esta acción en una cuadrícula alrededor de la unidad. Además, las cabezas de acción se calculan de forma independiente. El sistema de IA observa el mundo como una lista de 20.000 números y realiza una acción llevando a cabo una lista de ocho valores de enumeración. Además, selecciona diferentes acciones y objetivos para entender cómo codificar cada acción y observar el mundo.
 
 OpenAI Five se ha desarrollado como un sistema de entrenamiento de aprendizaje por refuerzo de propósito general sobre la infraestructura «Rapid». Rapid consta de dos capas: hace girar miles de máquinas y las ayuda a «hablar» entre sí y una segunda capa ejecuta software. En 2018, OpenAI Five había jugado alrededor de 180 años de aprendizaje por refuerzo ejecutándose en 256 GPU y 128 000 núcleos de CPU, utilizando Proximal Policy Optimization, un método de gradiente de políticas.
+
+## 1. ¿Qué se entiende por Inteligencia Artificial?
+
+La inteligencia artificial (IA) es la capacidad de los sistemas computacionales para realizar tareas típicamente asociadas con la inteligencia humana, como el aprendizaje, el razonamiento, la resolución de problemas, la percepción y la toma de decisiones. Es un campo de investigación en informática que desarrolla y estudia métodos y software que permiten a las máquinas percibir su entorno y utilizar el aprendizaje y la inteligencia para realizar acciones que maximicen sus posibilidades de alcanzar objetivos definidos.
+
+Traducción realizada con la versión gratuita del traductor DeepL.com
+
+## 3. ¿Qué se entiende por Inteligencia?
+
+La inteligencia se ha definido de muchas maneras: la capacidad de abstracción, lógica, comprensión, conciencia de uno mismo, aprendizaje, conocimiento emocional, razonamiento, planificación, creatividad, pensamiento crítico y resolución de problemas. Se puede describir como la capacidad de percibir o inferir información y retenerla como conocimiento para aplicarla a comportamientos adaptativos dentro de un entorno o contexto.
+
+## 4. ¿Qué se entiende por artificial?
+
+Hecho por el ser humano, especialmente a imitación de algo natural. Que no surge de causas naturales o necesarias; arbitrario. Afectado o falso
