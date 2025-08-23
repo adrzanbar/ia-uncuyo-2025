@@ -50,4 +50,4 @@ En un entorno muy grande con un "pasillo" o "corredor" del que sólo existe una 
 
 Sí. El agente puede ir construyendo un modelo del entorno desconocido con cada percepción, permitiendole salir de entornos difíciles y utilizar eficientemente la cantidad limitada de movimientos, al no visitar nuevamente celdas ya exploradas.
 
-> El entorno `harpomaxx/vacuum-cleaner-world` no soporta obstáculos ni grillas no cuadradas, una implementación de un agente reflejo simple con estado se encuentra en `student_agents/aima_simple_reflex_agent_with_sate.py`
+> El entorno `harpomaxx/vacuum-cleaner-world` no soporta obstáculos ni grillas no cuadradas, una implementación de un agente reflejo simple con estado se encuentra en `student_agents/simple_reflex_agent_with_sate.py`
