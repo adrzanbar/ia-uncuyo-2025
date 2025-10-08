@@ -1,10 +1,2 @@
 vacuum-env/
 game_data/
-**/__pycache__/
-*.pyc
-*.pyo
-*.pyd
-build/
-dist/
-eggs/
-*.egg-info/
