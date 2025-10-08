@@ -4,7 +4,7 @@
 
 > ### 2.8 Implemente un simulador de entorno para medir el rendimiento del mundo de las aspiradoras que se muestra en la figura 2.2 y se especifica en la página 38. Su implementación debe ser modular, de modo que los sensores, los actuadores y las características del entorno (tamaño, forma, ubicación de la suciedad, etc.) se puedan cambiar fácilmente.
 
-![Figura 2.2](images/Figure%202.2.png)
+![Figura 2.2](images/figure-2.2.png)
 
 > Consideremos el sencillo agente aspirador que limpia un cuadrado si está sucio y se desplaza al siguiente cuadrado si no lo está.
 > Supongamos lo siguiente:
