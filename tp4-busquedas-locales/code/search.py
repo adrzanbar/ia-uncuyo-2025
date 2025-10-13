@@ -166,9 +166,11 @@ def exp_schedule(k=20, lam=0.005, limit=100):
     return lambda t: (k * np.exp(-lam * t) if t < limit else 0)
 
 
-def simulated_annealing(problem, schedule=exp_schedule()):
+def simulated_annealing(problem, schedule=None):
     """[Figure 4.5] CAUTION: This differs from the pseudocode as it
     returns a state instead of a Node."""
+    if not schedule:
+        schedule = problem.schedule()
     current = Node(problem.initial)
     for t in range(sys.maxsize):
         if problem.goal_test(current.state):
@@ -189,49 +191,35 @@ def simulated_annealing(problem, schedule=exp_schedule()):
 # Genetic Algorithm
 
 
-def genetic_search(problem, ngen=1000, pmut=0.1, n=20):
-    """Call genetic_algorithm on the appropriate parts of a problem.
-    This requires the problem to have states that can mate and mutate,
-    plus a value method that scores states."""
-
-    return genetic_algorithm(
-        init_population(problem.gene_pool, problem.state_length, n),
-        problem.value,
-        problem.gene_pool,
-        problem.reproduce,
-        problem.mutate,
-        f_thres=problem.f_thres,
-        ngen=ngen,
-        pmut=pmut,
-    )
-
-
 def genetic_algorithm(
-    population,
-    fitness_fn,
-    gene_pool,
-    reproduce_op,
-    mutate_op,
-    f_thres=None,
+    problem,
     ngen=1000,
     pmut=0.1,
 ):
     """[Figure 4.8]"""
+    population = problem.population()
     for _ in range(ngen):
+        # compute fitnesses once and build a single weighted sampler per generation
+        fitnesses = [problem.value(p) for p in population]
+        sampler = weighted_sampler(population, fitnesses)
+
         new_population = []
         for _ in range(len(population)):
-            parents = select(2, population, fitness_fn)
-            child = reproduce_op(*parents)
+            parents = [sampler(), sampler()]
+            child = problem.reproduce(*parents)
             if random.uniform(0, 1) < pmut:
-                child = mutate_op(child, gene_pool)
+                child = problem.mutate(child)
             new_population.append(child)
+
         population = new_population
 
-        fittest_individual = fitness_threshold(fitness_fn, f_thres, population)
+        fittest_individual = fitness_threshold(
+            problem.value, problem.f_thres, population
+        )
         if fittest_individual:
             return fittest_individual
 
-    return max(population, key=fitness_fn)
+    return max(population, key=problem.value)
 
 
 def fitness_threshold(fitness_fn, f_thres, population):
@@ -245,7 +233,7 @@ def fitness_threshold(fitness_fn, f_thres, population):
     return None
 
 
-def init_population(gene_pool, state_length, pop_number=20):
+def init_population(gene_pool, state_length, rng, pop_number=20):
     """Initializes population for genetic algorithm
     pop_number  :  Number of individuals in population
     gene_pool   :  List of possible values for individuals
@@ -256,12 +244,6 @@ def init_population(gene_pool, state_length, pop_number=20):
         population.append(new_individual)
 
     return population
-
-
-def select(r, population, fitness_fn):
-    fitnesses = [fitness_fn(p) for p in population]
-    sampler = weighted_sampler(population, fitnesses)
-    return [sampler() for _ in range(r)]
 
 
 def recombine(x, y):
@@ -284,8 +266,13 @@ def mutate(x, gene_pool):
 
 
 class NQueensProblem(Problem):
-    def __init__(self, N):
-        super().__init__(tuple(random.sample(range(N), N)))
+    def __init__(self, N, seed=None):
+        if seed is not None:
+            rng = random.Random(seed)
+        else:
+            rng = random.Random()
+
+        super().__init__(tuple(rng.sample(range(N), N)))
         self.N = N
         self.MAX_PAIRS = N * (N - 1) // 2
 
@@ -326,7 +313,15 @@ class NQueensProblem(Problem):
                     count += 1
         return count
 
+    # SA specific methods
+
+    def schedule(self, k=200, lam=0.05, limit=1000):
+        return lambda t: (k * np.exp(-lam * t) if t < limit else 0)
+
     # GA specific methods
+
+    def population(self, pop_number=20):
+        return init_population(self.gene_pool, self.state_length, pop_number)
 
     def reproduce(self, x, y):
         """Order Crossover"""
@@ -404,3 +399,17 @@ class InstrumentedProblem(Problem):
         return "<{:4d}/{:4d}/{:4d}/{}>".format(
             self.succs, self.goal_tests, self.states, str(self.found)[:4]
         )
+
+    # GA
+
+    def population(self, pop_number=20):
+        self.states += 20
+        return self.problem.population(pop_number)
+
+    def reproduce(self, x, y):
+        self.states += 1
+        return self.problem.reproduce(x, y)
+
+    def mutate(self, x, gene_pool=None):
+        self.states += 1
+        return self.problem.mutate(x, gene_pool)
