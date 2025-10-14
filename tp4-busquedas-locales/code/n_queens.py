@@ -1,5 +1,6 @@
 import time
 import csv
+import os
 from search import (
     InstrumentedProblem,
     NQueensProblem,
@@ -64,7 +65,10 @@ if __name__ == "__main__":
             print()
             results["GA"][size].append(result)
 
-    with open("nqueens_results.csv", "w", newline="") as csvfile:
+    output_file = os.path.join(
+        "/home/adrian/ia-uncuyo-2025/tp4-busquedas-locales", "nqueens_results.csv"
+    )
+    with open(output_file, "w", newline="") as csvfile:
         fieldnames = [
             "algorithm_name",
             "env_n",

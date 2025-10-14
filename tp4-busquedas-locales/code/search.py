@@ -148,16 +148,20 @@ def hill_climbing(problem):
     stopping when no neighbor is better.
     """
     current = Node(problem.initial)
+    current_value = problem.value(current.state)
     while True:
         neighbors = current.expand(problem)
         if not neighbors:
             break
-        neighbor = argmax_random_tie(
-            neighbors, key=lambda node: problem.value(node.state)
-        )
-        if problem.value(neighbor.state) <= problem.value(current.state):
+
+        values = [problem.value(n.state) for n in neighbors]
+        best = max(values)
+
+        if best <= current_value:
             break
-        current = neighbor
+
+        current = neighbors[values.index(best)]
+        current_value = best
     return current.state
 
 
@@ -172,8 +176,9 @@ def simulated_annealing(problem, schedule=None):
     if not schedule:
         schedule = problem.schedule()
     current = Node(problem.initial)
+    current_value = problem.value(current.state)
     for t in range(sys.maxsize):
-        if problem.goal_test(current.state):
+        if problem.goal_test(current.state, current_value):
             return current.state
         T = schedule(t)
         if T == 0:
@@ -182,9 +187,10 @@ def simulated_annealing(problem, schedule=None):
         if not neighbors:
             return current.state
         next_choice = random.choice(neighbors)
-        delta_e = problem.value(next_choice.state) - problem.value(current.state)
+        delta_e = problem.value(next_choice.state) - current_value
         if delta_e > 0 or probability(np.exp(delta_e / T)):
             current = next_choice
+            current_value = problem.value(current.state)
 
 
 # ______________________________________________________________________________
@@ -199,41 +205,47 @@ def genetic_algorithm(
     """[Figure 4.8]"""
     population = problem.population()
     for _ in range(ngen):
-        # compute fitnesses once and build a single weighted sampler per generation
         fitnesses = [problem.value(p) for p in population]
+
+        fittest_individual = fitness_threshold(fitnesses, problem.f_thres, population)
+        if fittest_individual is not None:
+            return fittest_individual
+
         sampler = weighted_sampler(population, fitnesses)
 
         new_population = []
         for _ in range(len(population)):
-            parents = [sampler(), sampler()]
+            parent1 = parent2 = sampler()
+            while parent2 == parent1:
+                parent2 = sampler()
+            parents = [parent1, parent2]
+
             child = problem.reproduce(*parents)
+
             if random.uniform(0, 1) < pmut:
                 child = problem.mutate(child)
+
             new_population.append(child)
 
         population = new_population
 
-        fittest_individual = fitness_threshold(
-            problem.value, problem.f_thres, population
-        )
-        if fittest_individual:
-            return fittest_individual
-
     return max(population, key=problem.value)
 
 
-def fitness_threshold(fitness_fn, f_thres, population):
-    if not f_thres:
+def fitness_threshold(fitnesses, f_thres, population):
+    if f_thres is None:
         return None
 
-    fittest_individual = max(population, key=fitness_fn)
-    if fitness_fn(fittest_individual) >= f_thres:
-        return fittest_individual
+    best_fitness = max(fitnesses)
+
+    if best_fitness >= f_thres:
+        i = fitnesses.index(best_fitness)
+        return population[i]
 
     return None
 
 
-def init_population(gene_pool, state_length, rng, pop_number=20):
+def init_population(gene_pool, state_length, pop_number=20):
     """Initializes population for genetic algorithm
     pop_number  :  Number of individuals in population
     gene_pool   :  List of possible values for individuals
@@ -267,12 +279,9 @@ def mutate(x, gene_pool):
 
 class NQueensProblem(Problem):
     def __init__(self, N, seed=None):
-        if seed is not None:
-            rng = random.Random(seed)
-        else:
-            rng = random.Random()
-
+        rng = random.Random(seed)
         super().__init__(tuple(rng.sample(range(N), N)))
+
         self.N = N
         self.MAX_PAIRS = N * (N - 1) // 2
 
@@ -297,7 +306,9 @@ class NQueensProblem(Problem):
             or row1 + col1 == row2 + col2  # same / diagonal
         )
 
-    def goal_test(self, state):
+    def goal_test(self, state, cached_value=None):
+        if cached_value is not None:
+            return cached_value == self.MAX_PAIRS
         return self.value(state) == self.MAX_PAIRS
 
     def value(self, state):
@@ -376,12 +387,11 @@ class InstrumentedProblem(Problem):
         return self.problem.actions(state)
 
     def result(self, state, action):
-        self.states += 1
         return self.problem.result(state, action)
 
-    def goal_test(self, state):
+    def goal_test(self, state, cached_value=None):
         self.goal_tests += 1
-        result = self.problem.goal_test(state)
+        result = self.problem.goal_test(state, cached_value)
         if result:
             self.found = state
         return result
@@ -390,6 +400,7 @@ class InstrumentedProblem(Problem):
         return self.problem.path_cost(c, state1, action, state2)
 
     def value(self, state):
+        self.states += 1
         return self.problem.value(state)
 
     def __getattr__(self, attr):
@@ -399,17 +410,3 @@ class InstrumentedProblem(Problem):
         return "<{:4d}/{:4d}/{:4d}/{}>".format(
             self.succs, self.goal_tests, self.states, str(self.found)[:4]
         )
-
-    # GA
-
-    def population(self, pop_number=20):
-        self.states += 20
-        return self.problem.population(pop_number)
-
-    def reproduce(self, x, y):
-        self.states += 1
-        return self.problem.reproduce(x, y)
-
-    def mutate(self, x, gene_pool=None):
-        self.states += 1
-        return self.problem.mutate(x, gene_pool)
