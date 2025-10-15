@@ -10,7 +10,7 @@ import sys
 import random
 import numpy as np
 
-from utils import is_in, argmax_random_tie, probability, weighted_sampler
+from utils import is_in, probability, weighted_sampler
 
 
 class Problem:
@@ -197,52 +197,41 @@ def simulated_annealing(problem, schedule=None):
 # Genetic Algorithm
 
 
-def genetic_algorithm(
-    problem,
-    ngen=1000,
-    pmut=0.1,
-):
+def genetic_algorithm(problem, lamarckian=False):
     """[Figure 4.8]"""
     population = problem.population()
-    for _ in range(ngen):
+    for _ in range(problem.ngen):
         fitnesses = [problem.value(p) for p in population]
 
-        fittest_individual = fitness_threshold(fitnesses, problem.f_thres, population)
-        if fittest_individual is not None:
+        best_fit = max(fitnesses)
+        fittest_individual = population[fitnesses.index(best_fit)]
+        if best_fit >= problem.f_thres:
             return fittest_individual
 
         sampler = weighted_sampler(population, fitnesses)
 
         new_population = []
         for _ in range(len(population)):
-            parent1 = parent2 = sampler()
-            while parent2 == parent1:
-                parent2 = sampler()
-            parents = [parent1, parent2]
+            parents = sampler(2)
 
             child = problem.reproduce(*parents)
 
-            if random.uniform(0, 1) < pmut:
+            if random.uniform(0, 1) < problem.pmut:
                 child = problem.mutate(child)
+
+            if lamarckian:
+                subproblem = InstrumentedProblem(
+                    NQueensProblem(len(child), initial=child)
+                )
+                child = hill_climbing(subproblem)
+                if problem.states:
+                    problem.states += subproblem.states
 
             new_population.append(child)
 
         population = new_population
 
     return max(population, key=problem.value)
-
-
-def fitness_threshold(fitnesses, f_thres, population):
-    if f_thres is None:
-        return None
-
-    best_fitness = max(fitnesses)
-
-    if best_fitness >= f_thres:
-        i = fitnesses.index(best_fitness)
-        return population[i]
-
-    return None
 
 
 def init_population(gene_pool, state_length, pop_number=20):
@@ -278,9 +267,12 @@ def mutate(x, gene_pool):
 
 
 class NQueensProblem(Problem):
-    def __init__(self, N, seed=None):
-        rng = random.Random(seed)
-        super().__init__(tuple(rng.sample(range(N), N)))
+    def __init__(self, N, seed=None, initial=None, ngen=sys.maxsize, pmut=0.2):
+        if initial is not None:
+            super().__init__(initial)
+        else:
+            rng = random.Random(seed)
+            super().__init__(tuple(rng.sample(range(N), N)))
 
         self.N = N
         self.MAX_PAIRS = N * (N - 1) // 2
@@ -289,6 +281,8 @@ class NQueensProblem(Problem):
         self.gene_pool = tuple(range(N))
         self.state_length = N
         self.f_thres = self.MAX_PAIRS
+        self.ngen = ngen
+        self.pmut = pmut
 
     def actions(self, state):
         return [(i, j) for i in range(self.N) for j in range(i + 1, self.N)]
@@ -299,13 +293,6 @@ class NQueensProblem(Problem):
         state[i], state[j] = state[j], state[i]
         return tuple(state)
 
-    def conflict(self, row1, col1, row2, col2):
-        """Would putting two queens in (row1, col1) and (row2, col2) conflict?"""
-        return (
-            row1 - col1 == row2 - col2  # same \ diagonal
-            or row1 + col1 == row2 + col2  # same / diagonal
-        )
-
     def goal_test(self, state, cached_value=None):
         if cached_value is not None:
             return cached_value == self.MAX_PAIRS
@@ -315,24 +302,34 @@ class NQueensProblem(Problem):
         return self.MAX_PAIRS - self.num_conflicts(state)
 
     def num_conflicts(self, state):
+        max_diagonal = 2 * self.N - 1
+        main_diagonal = [0] * max_diagonal
+        anti_diagonal = [0] * max_diagonal
         count = 0
-        for c1 in range(self.N):
-            r1 = state[c1]
-            for c2 in range(c1 + 1, self.N):
-                r2 = state[c2]
-                if self.conflict(r1, c1, r2, c2):
-                    count += 1
+
+        for col, row in enumerate(state):
+            main_key = row - col + self.N - 1  # Shift index to be non-negative
+            anti_key = row + col
+
+            # Count conflicts in main diagonal
+            count += main_diagonal[main_key]
+            main_diagonal[main_key] += 1
+
+            # Count conflicts in anti diagonal
+            count += anti_diagonal[anti_key]
+            anti_diagonal[anti_key] += 1
+
         return count
 
     # SA specific methods
 
-    def schedule(self, k=200, lam=0.05, limit=1000):
-        return lambda t: (k * np.exp(-lam * t) if t < limit else 0)
+    def schedule(self):
+        return exp_schedule(k=self.N, lam=1 / self.N, limit=sys.maxsize)
 
     # GA specific methods
 
-    def population(self, pop_number=20):
-        return init_population(self.gene_pool, self.state_length, pop_number)
+    def population(self):
+        return init_population(self.gene_pool, self.state_length, self.N * 10)
 
     def reproduce(self, x, y):
         """Order Crossover"""
@@ -360,10 +357,8 @@ class NQueensProblem(Problem):
 
     def mutate(self, x, gene_pool=None):
         """Swap mutation. Preserves permutation property"""
-        if gene_pool is None:
-            gene_pool = self.gene_pool
-
-        i, j = random.sample(range(len(x)), 2)
+        n = len(x)
+        i, j = random.sample(range(n), 2)
         x_list = list(x)
         x_list[i], x_list[j] = x_list[j], x_list[i]
         return tuple(x_list)

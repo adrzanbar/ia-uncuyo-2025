@@ -16,6 +16,7 @@ if __name__ == "__main__":
         "HC": {4: [], 8: [], 10: [], 12: [], 15: []},
         "SA": {4: [], 8: [], 10: [], 12: [], 15: []},
         "GA": {4: [], 8: [], 10: [], 12: [], 15: []},
+        "LGA": {4: [], 8: [], 10: [], 12: [], 15: []},
     }
 
     for seed in range(num_runs):
@@ -64,6 +65,21 @@ if __name__ == "__main__":
             print(result)
             print()
             results["GA"][size].append(result)
+
+            print(f"Running LGA with seed {seed} and size {size}")
+            problem = InstrumentedProblem(NQueensProblem(size, seed))
+            start = time.time()
+            solution = genetic_algorithm(problem, lamarckian=True)
+            end = time.time()
+            result = {
+                "best_solution": solution,
+                "H": problem.value(solution),
+                "states": problem.states,
+                "time": end - start,
+            }
+            print(result)
+            print()
+            results["LGA"][size].append(result)
 
     output_file = os.path.join(
         "/home/adrian/ia-uncuyo-2025/tp4-busquedas-locales", "nqueens_results.csv"

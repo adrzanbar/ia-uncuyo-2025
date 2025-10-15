@@ -12,17 +12,6 @@ def is_in(elt, seq):
     return any(x is elt for x in seq)
 
 
-# ______________________________________________________________________________
-# argmin and argmax
-
-identity = lambda x: x
-
-
-def argmax_random_tie(seq, key=identity):
-    """Return an element with highest fn(seq[i]) score; break ties at random."""
-    return max(shuffled(seq), key=key)
-
-
 def shuffled(iterable):
     """Randomly shuffle a copy of iterable."""
     items = list(iterable)
@@ -40,8 +29,29 @@ def probability(p):
 
 
 def weighted_sampler(seq, weights):
-    """Return a random-sample function that picks from seq weighted by weights."""
+    """Return a random-sample function that picks k elements from seq weighted by weights, without replacement."""
     totals = []
     for w in weights:
         totals.append(w + totals[-1] if totals else w)
-    return lambda: seq[bisect.bisect_left(totals, random.uniform(0, totals[-1]))]
+
+    def sampler(k):
+        temp_seq = list(seq)  # Create a temporary copy of seq
+        temp_totals = list(totals)  # Create a temporary copy of totals
+        result = []
+
+        for _ in range(k):
+            rand_val = random.uniform(0, temp_totals[-1])
+            index = bisect.bisect_left(temp_totals, rand_val)
+            result.append(temp_seq[index])
+
+            # Remove selected element from temporary copies
+            del temp_seq[index]
+            del temp_totals[index]
+
+            # Update temporary totals
+            for i in range(index, len(temp_totals)):
+                temp_totals[i] -= weights[index]
+
+        return result
+
+    return sampler
