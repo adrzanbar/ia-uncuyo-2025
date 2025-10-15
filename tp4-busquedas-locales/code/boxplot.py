@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import datetime
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -8,7 +9,11 @@ import seaborn as sns
 
 # Read CSV from current working directory and save outputs to ./images in cwd
 CSV_PATH = Path.cwd() / "nqueens_results.csv"
-OUT_DIR = Path.cwd() / "images"
+# Update OUT_DIR to include a timestamp
+OUT_DIR = Path.cwd() / "images" / datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+# Define the algorithms to include in the plots
+ALGORITHMS = ["HC", "SA", "LGA"]
 
 
 def ensure_out_dir():
@@ -19,6 +24,10 @@ def read_data(csv_path: Path) -> pd.DataFrame:
     df = pd.read_csv(csv_path)
     # Normalize column names if needed
     df.columns = [c.strip() for c in df.columns]
+
+    # Filter data to include only specified algorithms
+    if "algorithm_name" in df.columns:
+        df = df[df["algorithm_name"].isin(ALGORITHMS)]
     return df
 
 
