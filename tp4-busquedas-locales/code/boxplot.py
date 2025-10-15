@@ -8,12 +8,18 @@ import seaborn as sns
 
 
 # Read CSV from current working directory and save outputs to ./images in cwd
-CSV_PATH = Path.cwd() / "nqueens_results.csv"
-# Update OUT_DIR to include a timestamp
-OUT_DIR = Path.cwd() / "images" / datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+CSV_PATH = os.path.join(
+    "/home/adrian/ia-uncuyo-2025/tp4-busquedas-locales",
+    "nqueens_HC_SA_GA_LGA_results.csv",
+)
+# Ensure OUT_DIR is a Path object
+OUT_DIR = Path(
+    "/home/adrian/ia-uncuyo-2025/tp4-busquedas-locales/images",
+    datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
+)
 
 # Define the algorithms to include in the plots
-ALGORITHMS = ["HC", "SA", "LGA"]
+ALGORITHMS = ["GA"]
 
 
 def ensure_out_dir():

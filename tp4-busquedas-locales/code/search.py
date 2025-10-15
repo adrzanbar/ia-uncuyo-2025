@@ -157,11 +157,15 @@ def hill_climbing(problem):
         values = [problem.value(n.state) for n in neighbors]
         best = max(values)
 
+        if problem.h_series is not None:
+            problem.h_series.append(best)
+
         if best <= current_value:
             break
 
         current = neighbors[values.index(best)]
         current_value = best
+
     return current.state
 
 
@@ -175,29 +179,40 @@ def simulated_annealing(problem, schedule=None):
     returns a state instead of a Node."""
     if not schedule:
         schedule = problem.schedule()
+
     current = Node(problem.initial)
     current_value = problem.value(current.state)
+    neighbors = current.expand(problem)
+
     for t in range(sys.maxsize):
+        if not neighbors:
+            return current.state
+
         if problem.goal_test(current.state, current_value):
             return current.state
+
         T = schedule(t)
         if T == 0:
             return current.state
-        neighbors = current.expand(problem)
-        if not neighbors:
-            return current.state
+
         next_choice = random.choice(neighbors)
         delta_e = problem.value(next_choice.state) - current_value
+
         if delta_e > 0 or probability(np.exp(delta_e / T)):
             current = next_choice
             current_value = problem.value(current.state)
+
+            if problem.h_series is not None:
+                problem.h_series.append(current_value)
+
+            neighbors = current.expand(problem)
 
 
 # ______________________________________________________________________________
 # Genetic Algorithm
 
 
-def genetic_algorithm(problem, lamarckian=False):
+def genetic_algorithm(problem, elitism=False, lamarckian=False):
     """[Figure 4.8]"""
     population = problem.population()
     for _ in range(problem.ngen):
@@ -205,13 +220,21 @@ def genetic_algorithm(problem, lamarckian=False):
 
         best_fit = max(fitnesses)
         fittest_individual = population[fitnesses.index(best_fit)]
+
+        if problem.h_series is not None:
+            problem.h_series.append(best_fit)
+
         if best_fit >= problem.f_thres:
             return fittest_individual
 
         sampler = weighted_sampler(population, fitnesses)
 
         new_population = []
-        for _ in range(len(population)):
+
+        if elitism:
+            new_population.append(fittest_individual)
+
+        for _ in range(len(population) - len(new_population)):
             parents = sampler(2)
 
             child = problem.reproduce(*parents)
@@ -219,15 +242,12 @@ def genetic_algorithm(problem, lamarckian=False):
             if random.uniform(0, 1) < problem.pmut:
                 child = problem.mutate(child)
 
-            if lamarckian:
-                subproblem = InstrumentedProblem(
-                    NQueensProblem(len(child), initial=child)
-                )
-                child = hill_climbing(subproblem)
-                if problem.states:
-                    problem.states += subproblem.states
-
             new_population.append(child)
+
+        if lamarckian and problem.improve is not None:
+            idx = random.randrange(len(new_population))
+            improved = problem.improve(new_population[idx])
+            new_population[idx] = improved
 
         population = new_population
 
@@ -329,7 +349,7 @@ class NQueensProblem(Problem):
     # GA specific methods
 
     def population(self):
-        return init_population(self.gene_pool, self.state_length, self.N * 10)
+        return init_population(self.gene_pool, self.state_length, self.N * self.N)
 
     def reproduce(self, x, y):
         """Order Crossover"""
@@ -363,6 +383,11 @@ class NQueensProblem(Problem):
         x_list[i], x_list[j] = x_list[j], x_list[i]
         return tuple(x_list)
 
+    def improve(self, state):
+        subproblem = InstrumentedProblem(NQueensProblem(self.N, initial=state))
+        improved = hill_climbing(subproblem)
+        return improved, subproblem.states, subproblem.h_series
+
 
 # ______________________________________________________________________________
 
@@ -376,6 +401,7 @@ class InstrumentedProblem(Problem):
         self.problem = problem
         self.succs = self.goal_tests = self.states = 0
         self.found = None
+        self.h_series = [self.problem.value(self.problem.initial)]
 
     def actions(self, state):
         self.succs += 1
@@ -405,3 +431,9 @@ class InstrumentedProblem(Problem):
         return "<{:4d}/{:4d}/{:4d}/{}>".format(
             self.succs, self.goal_tests, self.states, str(self.found)[:4]
         )
+
+    def improve(self, state):
+        improved, states, h_series = self.problem.improve(state)
+        self.states += states
+        self.h_series.extend(h_series)
+        return improved
