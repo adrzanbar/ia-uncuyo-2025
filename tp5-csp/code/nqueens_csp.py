@@ -38,7 +38,7 @@ ALGORITHMS = {
 N_VALUES = [4, 8, 10, 12, 15]
 SEEDS = list(range(1, 31))
 RESULTS_CSV = BASE_DIR / "tp5-Nreinas.csv"
-STATS_CSV = BASE_DIR / "stats.csv"
+STATS_CSV = BASE_DIR / "tp5-stats.csv"
 
 
 def run_once(n, select, order, inference, rng):
