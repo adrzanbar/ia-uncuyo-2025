@@ -1,0 +1,24 @@
+# Course material (not ours to commit)
+share/
+
+# Nested third-party / fork clones (pinned commits, see README.md)
+NetSecGame/
+NetSecGameAgents/
+
+# Environments
+.venv/
+venv/
+venv-*/
+
+# Training artifacts / logs
+logs/
+*.log
+wandb/
+*.pickle
+
+# Build leftovers
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
