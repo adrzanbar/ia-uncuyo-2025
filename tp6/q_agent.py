@@ -42,6 +42,9 @@ class QAgent(BaseAgent):
             self.inter_action_interval = 0
 
     def store_q_table(self, filename):
+        directory = path.dirname(filename)
+        if directory:
+            makedirs(directory, exist_ok=True)
         with open(filename, "wb") as f:
             data = {"q_table":self.q_values, "state_mapping": self._str_to_id}
             pickle.dump(data, f)
@@ -308,8 +311,10 @@ if __name__ == '__main__':
         agent._logger.info(f'Epsilon End: {agent.epsilon_end}')
         agent._logger.info(f'Epsilon Max Episodes: {agent.epsilon_max_episodes}')
 
+        last_played = 0
         for episode in range(1, args.episodes + 1):
                 if not early_stop:
+                    last_played = episode
                     # Play 1 episode
                     observation, num_steps = agent.play_game(observation, testing=args.testing, episode_num=episode)       
 
@@ -464,7 +469,7 @@ if __name__ == '__main__':
 
                                 # store model. Use episode (training counter) and not test_episode (test counter)
                                 if episode % args.store_models_every == 0 and episode != 0:
-                                    agent.store_q_table(f'/data/AIDojo/Models/q_agent_marl.experiment{args.experiment_id}-episodes-{episode}.pickle')
+                                    agent.store_q_table(f'models/q_agent_marl.experiment{args.experiment_id}-episodes-{episode}.pickle')
 
                             text = f'''Tested for {test_episode} episodes after {episode} training episode.
                                 Wins={test_wins},
@@ -504,7 +509,7 @@ if __name__ == '__main__':
 
 
         # Log the last final episode when it ends
-        text = f'''Final model performance after {episode} episodes.
+        text = f'''Final model performance after {last_played} episodes.
             Wins={wins},
             Detections={detected},
             winrate={eval_win_rate:.3f}%,
